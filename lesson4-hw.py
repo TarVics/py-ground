@@ -215,7 +215,7 @@ data = [
 
 res: list[int] = []
 
-while data:
+while data and len(res) < 5:
     items = data.pop(0)
 
     while items:
@@ -227,4 +227,5 @@ while data:
             break
 
 print(res)
+
 ######################################################################################################
