@@ -10,9 +10,10 @@ def gmail_reader(file_name: str, tail: str):
     tail_len = len(tail)
     with open(file_name) as src:
         for line in src:
-            res = line[line.rindex('\t') + 1:len(line) - 1]
-            if res[-tail_len:] == tail:
-                yield res
+            email = line[line.rindex('\t') + 1:len(line) - 1]
+            # email = line.split()[-1]
+            if email[-tail_len:] == tail:
+                yield email
 
 
 def file_writer(file_name: str, source) -> None:
@@ -46,60 +47,55 @@ except Exception as err:
 class ShoppingNotebook:
     def __init__(self, file_name):
         self.__file_name = file_name
+        self.__notes: list[dict] = []
+        self._read_notes()
 
-    def _read_notes(self) -> list[dict]:
-        notes: list[dict] = []
+        gen_id: int = max(self.__notes, key=lambda note: note['id'])['id'] + 1 if self.__notes else 1
+        self.__id = self.__genid(gen_id)
 
+    @staticmethod
+    def __genid(init: int = 1):
+        current = init
+        while True:
+            yield current
+            current += 1
+
+    def _read_notes(self) -> None:
         try:
             with open(self.__file_name) as file:
-                notes = json.load(file)
-        except Exception:
-            pass
+                self.__notes = json.load(file)
+        except (Exception,):
+            self.__notes = []
 
-        return notes
-
-    def _write_notes(self, notes: list[dict]) -> None:
+    def _write_notes(self) -> None:
         try:
             with open(self.__file_name, 'w') as file:
-                json.dump(notes, file)
+                json.dump(self.__notes, file)
         except Exception as ex:
             print(ex)
 
     # * вивід всіх покупок
     def show_all(self) -> None:
-        notes: list[dict] = self._read_notes()
-        for note in notes:
+        for note in self.__notes:
             print(note)
 
     # * має бути змога додавати покупку в книгу
-    def add_new(self, id: int, name: str, price: float) -> None:
-        notes: list[dict] = self._read_notes()
-        notes.append({'id': id, 'name': name, 'price': price})
-        self._write_notes(notes)
+    def add_new(self, name: str, price: float) -> None:
+        self.__notes.append({'id': next(self.__id), 'name': name, 'price': price})
+        self._write_notes()
 
     # * має бути змога шукати по будь якому полю покупку
-    def find_by(self, name: str, value: any) -> dict | None:
-        notes: list[dict] = self._read_notes()
-        return next((note for note in notes if note[name] == value), None)
+    def find_by(self, name: str, value: str) -> dict | None:
+        return next((note for note in self.__notes if str(note[name]) == value), None)
 
     # * має бути змога показати найдорожчу покупку
     def find_expensive(self) -> dict | None:
-        books: list[dict] = self._read_notes()
-        if len(books) == 0:
-            return None
-
-        current_book = books[0]
-
-        for book in books:
-            if book['price'] > current_book['price']:
-                current_book = book
-
-        return current_book
+        return max(self.__notes, key=lambda note: note["id"])
 
     # * має бути можливість видаляти покупку по id
-    def delete_book(self, id: int) -> None:
-        books: list[dict] = self._read_notes()
-        self._write_notes([book for book in books if book['id'] != id])
+    def delete_note(self, note_id: int) -> None:
+        self.__notes = [note for note in self.__notes if note['id'] != note_id]
+        self._write_notes()
 
     def run(self):
         while True:
@@ -117,21 +113,31 @@ class ShoppingNotebook:
                     case '1':
                         self.show_all()
                     case '2':
-                        id: int = int(input('Вкажіть id книги: '))
-                        name: str = input('Вкажіть name книги: ')
-                        price: float = float(input('Вкажіть price книги: '))
-                        self.add_new(id, name, price)
+                        name: str = input('Вкажіть назву покупки: ')
+                        while True:
+                            try:
+                                price: float = float(input('Вкажіть ціну покупки: '))
+                                break
+                            except (Exception,):
+                                pass
+
+                        self.add_new(name, price)
                     case '3':
-                        name: str = input('Вкажіть назву поля (id | name | price): ')
-                        value = input(f'Вкажіть значення поля {name} книги: ')
-                        res = self.find_by(name, value)
-                        print(f'Знайдена книга {res}')
+                        name: str = ''
+                        while name not in ['id', 'name', 'price']:
+                            name: str = input('Вкажіть назву поля для пошуку (id | name | price): ')
+
+                        value = input(f'Вкажіть значення поля {name} покупки: ')
+
+                        result = self.find_by(name, value)
+
+                        print(f'Результат пошуку: {result}')
                     case '4':
-                        res = self.find_expensive()
-                        print(f'Знайдена найдорожча книга {res}')
+                        expensive = self.find_expensive()
+                        print(f'Най дорожча покупка: {expensive}')
                     case '5':
-                        id: int = int(input('Вкажіть значення поля id для видалення книги: '))
-                        self.delete_book(id)
+                        product_id: int = int(input('Вкажіть значення поля id для видалення покупки: '))
+                        self.delete_note(product_id)
                     case '6':
                         break
 
@@ -213,19 +219,32 @@ data = [
     ]
 ]
 
-res: list[int] = []
 
-while data and len(res) < 5:
-    items = data.pop(0)
+# res: list[int] = []
+#
+# while data and len(res) < 5:
+#     items = data.pop(0)
+#
+#     while items:
+#         id = items.pop(0)["id"]
+#
+#         if id not in res:
+#             res.append(id)
+#             data.append(items)
+#             break
+#
+# print(res)
 
-    while items:
-        id = items.pop(0)["id"]
+def make() -> list[int]:
+    res: list[int] = []
+    gens: list = [(v["id"] for v in items if v["id"] not in res) for items in data]
+    while True:
+        for gen in gens:
+            res.append(next(gen))
+            if len(res) == 5:
+                return res
 
-        if not next((v for v in res if v == id), None):
-            res.append(id)
-            data.append(items)
-            break
 
-print(res)
+print(make())
 
 ######################################################################################################
