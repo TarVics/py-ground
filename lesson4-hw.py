@@ -88,7 +88,7 @@ class ShoppingNotebook:
         if len(books) == 0:
             return None
 
-        current_book = books[0];
+        current_book = books[0]
 
         for book in books:
             if book['price'] > current_book['price']:
@@ -130,7 +130,7 @@ class ShoppingNotebook:
                         res = self.find_expensive()
                         print(f'Знайдена найдорожча книга {res}')
                     case '5':
-                        id: str = input('Вкажіть значення поля id для видалення книги: ')
+                        id: int = int(input('Вкажіть значення поля id для видалення книги: '))
                         self.delete_book(id)
                     case '6':
                         break
